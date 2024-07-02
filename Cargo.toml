@@ -1,6 +1,8 @@
 [package]
-name = "protocolyt"
+name = "proto"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+colored = "*"
+which = "4.2"

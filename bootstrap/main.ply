@@ -1,0 +1,14 @@
+const vec := @import("vector");
+
+fn main(args: vec[asciz]) @void {
+  @import("io")
+    .writer()
+    .unwrap()
+    .debug(
+      @import("types").from(
+        @import("io")
+          .writer()
+          .unwrap()
+      ).unwrap()
+    );
+}
