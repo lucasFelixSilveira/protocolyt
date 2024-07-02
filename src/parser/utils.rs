@@ -22,6 +22,11 @@ impl Tokens {
     Some(self.row[self.current - 1].clone())
   }
 
+  pub fn after(&mut self) -> Option<Token> {
+    if self.current == self.len { return None }
+    Some(self.row[self.current].clone())
+  }
+
   pub fn back(&mut self) {
     self.current -= 1;
   }

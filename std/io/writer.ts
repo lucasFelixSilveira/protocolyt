@@ -1,13 +1,15 @@
-import asciz from "../asciz";
+import {ASCIz} from "../asciz";
 import {Option} from "../uncertain";
 import * as types from "../types";
 
-function println(fmt: asciz) {
-  if(typeof fmt != "string") return;
+function println(fmt: ASCIz) {
+  if( fmt?.type == "ASCIz" ) return console.write(`Debug: ${new TextDecoder().decode((fmt.bytes == null ? new Uint8Array() : fmt.bytes) as Uint8Array)}\x0a`)
+    if(typeof fmt != "string") return;
   console.write(`${fmt}\x0a`);
 }
 
-async function print(fmt: asciz) {
+async function print(fmt: ASCIz) {
+  if( fmt?.type == "ASCIz" ) return console.write(`Debug: ${new TextDecoder().decode((fmt.bytes == null ? new Uint8Array() : fmt.bytes) as Uint8Array)}`)
   if(typeof fmt != "string") return;
   console.write(fmt);
 }

@@ -59,7 +59,7 @@ pub fn parse(file_content: &mut (Bytes, String, String), t: Vec<Token>) -> Strin
 type $void = void;
 function $error(msg) { console.log(msg) };
 function $import(path) { if( path.endsWith(".ply") ) return require(path) 
-else if( ["vector", "asciz", "io", "types"].includes(path) ) { return require("../std/"+path+".ts") } };
+else if( ["vector", "asciz", "io", "types", "uncertain"].includes(path) ) { return require("../std/"+path+".ts") } };
 try { main(require('process').argv.slice(2)) } catch { console.log("Segmentation fault"); }
 require("process").exit(0);"#.to_string();
 
@@ -78,22 +78,63 @@ require("process").exit(0);"#.to_string();
       TokenType::Keyword => {
         match tk.content.as_str() {
           "await" => { result.push_str(" await ") }
-          "const" => {
+          "const" | "var" => {
+            let mut dec: String = String::new();
             let id: Token = tokens.next().unwrap_or_else(|| { incomplete(); unreachable!() });
             if 
               id.type_ != TokenType::Identifier && 
               id.type_ != TokenType::Operator("all") 
             { has_expected(file_content, id.clone(), TokenType::Identifier) }
 
-            result.push_str("\nconst ");
-            result.push_str(&id.content);
+            dec.push_str(&format!(";\n{} ", if tk.content == "var" { "let "} else {"const"}));
+            dec.push_str(&id.content);
 
-            let collon_or_walrus: Token = tokens.next().unwrap_or_else(|| { incomplete(); unreachable!() });
-            if collon_or_walrus.type_ != TokenType::Operator("walrus") { has_expected(file_content, id.clone(), TokenType::Operator("walrus")) }
+            let colon_or_walrus: Token = tokens.next().unwrap_or_else(|| { incomplete(); unreachable!() });
+            if 
+              colon_or_walrus.type_ != TokenType::Operator("colon") &&
+              colon_or_walrus.type_ != TokenType::Operator("walrus")
+            { has_expected(file_content, id.clone(), TokenType::Operator("walrus")) }
           
-            if collon_or_walrus.type_ == TokenType::Operator("walrus") {
-              result.push_str(": any = ");
+
+            if colon_or_walrus.type_ == TokenType::Operator("walrus") {
+              dec.push_str(": any = ");
+              result.push_str(&dec);
+              continue;
             }
+
+            dec.push_str(": ");
+            let mut string: String = String::new();
+            let mut natural: String = String::new();
+            let old: usize = stack.len();
+            loop {
+              let tk: Token = tokens.next().unwrap_or_else(|| { incomplete(); unreachable!() });
+              match tk.type_ {
+                TokenType::Bracket(false) if stack.last().unwrap() == &BracketType::Bracket => { string.push(']'); stack.remove(stack.len()-1); }, 
+                TokenType::Bracket(true) => { stack.push(BracketType::Bracket); string.push('['); continue },
+                TokenType::Identifier => { if natural.is_empty() { natural = tk.content.clone() }; string.push_str(&tk.content); continue },
+                TokenType::Operator("sign") => { break },
+                TokenType::Operator("semi") => { break },
+                _ => { has_expected(file_content, tk.clone(), TokenType::Type) }
+              }
+            }
+
+            if stack.len() != old {
+              incomplete();
+            }
+
+            result.push_str(&format!("\ntry {{ if( {natural} == undefined ) $error('The \\'{natural}\\' type does not exist or is not imported.'); }} catch {{ $error('The \\'{natural}\\' type does not exist or is not imported.') }}"));
+            dec.push_str(&ts_generic(string));
+
+            tokens.next().unwrap_or_else(|| { incomplete(); unreachable!() });
+            let sign_or_semi: Token = tokens.before().unwrap();
+            tokens.current -= 1;
+
+            result.push_str(&dec);
+            result.push(' ');
+            result.push_str(&sign_or_semi.content);
+            result.push(' ');
+
+            continue;
           }
           "type" => {
             let id: Token = tokens.next().unwrap_or_else(|| { incomplete(); unreachable!() });
@@ -230,6 +271,24 @@ require("process").exit(0);"#.to_string();
       TokenType::Identifier => { result.push_str(&tk.content) }
       TokenType::Operator("semi") => { result.push_str(";"); }
       TokenType::Operator("dot") => { result.push('.') }
+      TokenType::Operator("colon") if tokens.after().unwrap_or_else(|| { incomplete(); unreachable!() }).type_ == TokenType::Operator("colon") => {
+        tokens.next().unwrap();
+        let mut generic: String = String::new();
+        let mut natural: String = String::new();
+        loop {
+          let tk: Token = tokens.next().unwrap_or_else(|| { incomplete(); unreachable!() });
+          match tk.type_ {
+            TokenType::Bracket(false) if stack.last().unwrap() == &BracketType::Bracket => { generic.push(']'); stack.remove(stack.len()-1); }, 
+            TokenType::Bracket(true) => { stack.push(BracketType::Bracket); generic.push('['); continue },
+            TokenType::Identifier => { if natural.is_empty() { natural = tk.content.clone() }; generic.push_str(&tk.content); continue },
+            TokenType::Operator("comma") if stack.last().unwrap_or_else(|| &BracketType::None) == &BracketType::Bracket => { generic.push_str(", "); continue },
+            TokenType::Parenthesis(true) => { break }
+            _ => { has_expected(file_content, tk.clone(), TokenType::Type) }
+          }
+        }
+        result.push_str(&ts_generic(generic));
+        tokens.current -= 1;
+      }
       _ => {}
     }
   }
