@@ -49,11 +49,27 @@ const option := @import("uncertain").Option;
 fn main(args: vec[asciz]) @void {
   const stdout := io.writer().unwrap();
 
+  // Starts the OPTION inside memory.
   const opt: option[asciz] = option.init::[asciz]();
-  stdout.debug(t);
+  
+  // Prints the type corresponding to OPTION, so that we 
+  // can see the change between the initial and final types.
+  stdout.debug(opt);
+  
+  // Starts a new String in memory and sets it to the literal content of "Hello, world!"
+  // Sets that OPTION now responds to the SOME type. 
+  //
+  // The variable placed within the SOME function below has its memory
+  // copied into OPTION, and as soon as there is an UNWRAP, the memory
+  // is recovered accessible again.
   const val: asciz = asciz.init().from("Hello, world!").unwrap();
   opt.Some(val);
+
+  // Print the current type of UNION.
   stdout.debug(opt);
+  
+  // Test whether the OPTION is working properly by printing the result
+  // and seeing if it was as expected
   stdout.println(opt.unwrap());
 }
 ```
