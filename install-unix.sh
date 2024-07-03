@@ -1,8 +1,8 @@
 #!/bin/bash
-git clone https://github.com/lucasFelixSilveira/protocolyt.git
-cd protocolyt
 cargo build --release
-cd ..
+cp -r std target/release/std
+clear
+
 
 export PATH="$PATH:$(pwd)/protocolyt/target/release"
 

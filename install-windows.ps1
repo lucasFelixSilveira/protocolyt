@@ -1,12 +1,11 @@
-git clone https://github.com/lucasFelixSilveira/protocolyt.git
-
-Set-Location -Path "./protocolyt"
-
 cargo build --release
 
-Set-Location -Path ".."
+Copy-Item -Recurse -Path "std" -Destination "target/release/std"
 
-$env:PATH += ";$(Get-Location)/protocolyt/target/release"
+Clear-Host
 
-Write-Output "O diretório do projeto foi adicionado ao PATH:"
+$path = [System.IO.Path]::Combine((Get-Location).Path, "protocolyt/target/release")
+$env:PATH += ";$path"
+
+Write-Output "O diretório atual foi adicionado ao PATH:"
 Write-Output $env:PATH

@@ -7,10 +7,7 @@ read
 clear
 
 rm -r ./std
-mkdir std
-mkdir std/io
-cp ./target/release/std/*.ts ./std/
-cp ./target/release/std/*/*.ts ./std/*/
+cp -r ./target/release/std/ ./std/
 clear
 
 proto bootstrap/main.ply
